@@ -1,40 +1,34 @@
-import { readFileSync } from "fs";
 import { NextResponse } from "next/server";
 import OpenAI, { toFile } from "openai";
 import path from "path";
-import ExcelJS from 'exceljs';
+import fs from 'fs';
+import { generateExcel } from "./generate-excel";
+const PROMPT_CONTENT = fs.readFileSync(path.resolve(process.cwd(), 'app', 'api', 'files', 'prompt.md'))?.toString?.(); //prompt内容
 const apiKey = 'sk-1fae8b198b114399b097b74f0114586e';
-const templateBuffer = readFileSync(path.join(process.cwd(), 'uploads', '专利拆解.xls'));
 const openai = new OpenAI({
     apiKey,
     baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
 })
-const templateToFile = await toFile(templateBuffer, '专利拆解', { type: 'application/vnd.ms-excel' })
-const uploadedTemplateFile = await openai.files.create({
-    file: templateToFile,
-    purpose: 'file-extract',
-})
+function parseModelJSON(text: string): any[] {
+    const attempts = [
+        () => JSON.parse(text.trim()),
+        () => JSON.parse(text.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim()),
+        () => {
+            const match = text.match(/\[[\s\S]*\]/)
+            if (!match) throw new Error('no match')
+            return JSON.parse(match[0])
+        },
+    ]
 
-async function generateExcel(rows: Record<string, any>[]): Promise<Buffer> {
-    const workbook = new ExcelJS.Workbook()
-    const sheet = workbook.addWorksheet('Sheet1')
+    for (const attempt of attempts) {
+        try {
+            const result = attempt()
+            if (Array.isArray(result)) return result
+        } catch { }
+    }
 
-    if (rows.length === 0) return Buffer.alloc(0)
-
-    // 自动从第一行数据生成列头
-    const columns = Object.keys(rows[0])
-    sheet.columns = columns.map(key => ({
-        header: key,
-        key,
-        width: 20,
-    }))
-
-    // 写入数据
-    rows.forEach(row => sheet.addRow(row))
-
-    // 输出为 Buffer
-    const buffer = await workbook.xlsx.writeBuffer()
-    return Buffer.from(buffer)
+    console.error('JSON 解析失败，原始内容：', text)
+    throw new Error('模型未返回有效 JSON')
 }
 
 async function isPDF(file: File): Promise<boolean> {
@@ -51,81 +45,35 @@ async function isPDF(file: File): Promise<boolean> {
 
 export async function POST(request: Request) {
     const formData = await request.formData();
-    const files = formData.getAll('files') as Array<File>;
-    let err;
+    const file = formData.get('file') as File;
+    let errorMessage = '';
     let excelBuffer;
-    if (!files.length) {
-        return NextResponse.json({
-            message: '没有上传文件',
-            code: 500,
-        }, {
-            status: 500,
-            statusText: 'error',
-        })
-    }
-    if (!uploadedTemplateFile) {
-        return NextResponse.json({
-            message: '专利分析模板上传失败',
-            code: 500,
-        }, {
-            status: 500,
-            statusText: 'error',
-        })
-    }
-    const uploadedFiles = [uploadedTemplateFile];
-    //遍历前端所穿过来的所有PDF文件，校验并上传给openAI云空间
-    for (const file of files) {
-        try {
-            if (!isPDF(file)) {
-                throw Error(`${file.name} 不是pdf文件`)
-            }
-            const buffer = Buffer.from(await file.arrayBuffer());
-            const openAIFile = await toFile(buffer, file.name, { type: file.type })
-            const uploadedFile = await openai.files.create({
-                file: openAIFile,
-                purpose: 'file-extract',
-            })
-            uploadedFiles.push(uploadedFile);
-        } catch (exception) {
-            console.log('exception is ', exception)
-            err = exception;
-            break;
-        }
-    }
-
-    if (uploadedFiles.length - 1 !== files.length) {
-        err = '上传文件给openAI失败';
-    }
     try {
+        if (!file || !(file instanceof File)) {
+            throw Error('用户没有上传文件')
+        }
+        if (!isPDF(file)) {
+            throw Error(`${file?.name} 不是pdf文件`)
+        }
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const openAIFile = await toFile(buffer, file.name, { type: file.type })
+        const uploadedFile = await openai.files.create({
+            file: openAIFile,
+            purpose: 'file-extract',
+        })
         const messages = [
-            ...uploadedFiles.map((item, index) => ({
+            {
                 role: 'system',
-                content: `fileid://${item.id}； 文件名称${item.filename}；是${index === 0 ? 'PDF文件' : 'excel文件'}`
-            })),
+                content: `fileid://${uploadedFile?.id}`
+            },
             {
                 role: 'user',
-                content: `站在一个化妆品研发工程师的角度，完成以下工作:
-                1.根据我上传的PDF专利文件, 输出一个excel文件（.xlsx)格
-                2.从专利摘要部分获取组合物几个大的组成部分：例如活性成分、乳化剂、助乳化剂、多元醇、液体脂质、磷脂、水等大类及其比例或者份数、质量百分比范围。
-                3、从具体实施方式或者权利要求书部分获取所述组分大类分别是什么组份，并分别列出组份
-                4、从具体实施方式列出各个实施例、对比例用到的组份和量（比例、百分比、份数），放在一起做成一个表格。横向表头为各个组份，竖向表头为各个实施例、对比例。组份上面是所属的大的组成部分。
-                5、从试验例、测试例、实验例中找出测试的项目类别，比如什么的含量、稳定性、粒径、PDI、斑贴测试、刺激性、皮肤含水量等，在步骤3做出的表格右侧横向表头列出对应的测试项目，在对应实施例、或者对比例测试过的项目表格里打勾。
-                6.输出的excel表格，其格式参考我给你的excel模板，文件id:${uploadedTemplateFile.id}
-                7.输出的Excel文件可能包含多个子表，根据我给你的PDF文件数量决定（例如我给你了1个PDF文件，那么只有一个子表）
-                8.每个子表名称都以这份PDF对应的文件名称命名，例如我给你输入的PDF名称为A.pdf,那么excel中这个子表叫做"A表"
-                `
-            }, {
-                role: 'user',
-                content: `请将这份文档中的所有结构化数据提取为 JSON 数组。
-                        要求：
-                        - 字段名直接使用文档中的原始列名/标题
-                        - 有多少列提取多少列，不要遗漏
-                        - 每一条记录作为数组中的一个对象
-                        - 只返回 JSON 数组，不要其他任何文字`
+                content: PROMPT_CONTENT,
             }
         ]
+        console.log('messages is ', messages)
         const modelResponse = await openai.chat.completions.create({
-            model: 'qwen-turbo',
+            model: 'qwen-long-latest',
             messages,
         })
         const text = modelResponse.choices[0].message.content ?? '';
@@ -133,17 +81,21 @@ export async function POST(request: Request) {
             messages,
             text,
         })
-        const json = text.replace(/```json|```/g, '').trim();
-        const rows = JSON.parse(json);
-        excelBuffer = await generateExcel(rows);
+        const json = parseModelJSON(text)
+        excelBuffer = await generateExcel(json);
+        console.log({
+            json,
+            excelBuffer
+        })
+        console.log('token使用量:', modelResponse.usage)
+        console.log('finish_reason:', modelResponse.choices[0].finish_reason)
+        console.log('completion_tokens:', modelResponse.usage?.completion_tokens)
     }
     catch (exception) {
-        err = exception;
-        console.log('err is ', err)
+        errorMessage = (exception as Error).message ?? exception
     }
-
-    const response = err ? NextResponse.json({
-        message: `分析失败，原因:${err}`,
+    const response = errorMessage ? NextResponse.json({
+        message: `分析失败，原因:${errorMessage}`,
         code: 500,
     }, {
         status: 500,

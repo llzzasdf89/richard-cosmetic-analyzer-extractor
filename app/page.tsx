@@ -1,36 +1,27 @@
 'use client';
-import { Button, Surface, ListBox, Label, CloseButton } from "@heroui/react"
+import { Button, Surface, ListBox, Label, CloseButton, Popover, Link } from "@heroui/react"
 import {Paperclip} from "@gravity-ui/icons";
-import {useState, useRef, useEffect} from 'react'
+import {useState, useRef} from 'react'
 import './globals.css';
 import SubmitModal from "./components/submit-modal/submit-modal";
 export default function Home() {
-  const [uploadedFiles,setUploadedFiles] = useState<Array<File>>([]);
+  const [uploadedFile,setUploadedFile] = useState<null | File>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const handlePress = () => {
     uploadRef?.current?.click?.()
   }
   const handleUploadFileChange = () => {
-    const currentFileList = Array.from(uploadRef?.current?.files as FileList);
-    if(!currentFileList.length) {
+    const uploadedFile = uploadRef?.current?.files?.[0]
+    if(!uploadedFile) {
       return;
     }
-    const filteredList = currentFileList.filter(item => !uploadedFiles.some(file => file.name === item.name));
-    const targetList = [...uploadedFiles, ...filteredList];
-    if(targetList.length > 9) {
-      return;
-    }
-    setUploadedFiles(targetList);
+    setUploadedFile(uploadedFile);
   }
 
-  const handleDeleteFile = (file:File)=>{
-    setUploadedFiles(uploadedFiles.filter(item => item.name !== file.name))
+  const handleDeleteFile = ()=>{
+    setUploadedFile(null);
     uploadRef.current!.value = ''; //清空在input element中已经上传的元素，重置状态。否则用户反复选择同一文件后是无法触发onChange事件的
   }
-
-  useEffect(() => {
-    console.log('uploadedFiles is ', uploadedFiles)
-  }, [uploadedFiles])
   return (<html>
     <body>
       <div className="bg-white">
@@ -51,28 +42,36 @@ export default function Home() {
         <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
           <div className="text-center">
             <h1 className="text-5xl font-semibold tracking-tight text-balance text-gray-900 sm:text-7xl">
-              一个专业的专利分析器
+              一个专业的化妆品专利成分提取器
             </h1>
             <p className="mt-8 text-lg font-medium text-pretty text-gray-500 sm:text-xl/8">
-              在下方传入你的专利PDF文档（不超过9个）
+              传入一份化妆品专利pdf文档，可为你提取出里面所涉及的<Popover >
+                                <Link className="text-[length:inherit] font-inherit">所有成分</Link>
+                                <Popover.Content className="max-w-64" placement="right top">
+                                  <Popover.Dialog>
+                                    <p className="text-sm text-muted">
+                                      比如专利CN114533614经分析提取后生成的是这个<Link href="example.xlsx" download="CN114533614分析结果">Excel文件</Link>
+                                    </p>
+                                  </Popover.Dialog>
+                              </Popover.Content>
+                          </Popover>
             </p>
           </div>
            <Surface className="flex min-w-[320px] flex-col gap-3 rounded-3xl p-6">
             <Button onPress={handlePress} className="self-center">
               <Paperclip/>
-              快速开始
+              尝试一下
             </Button>
-            <input type="file" accept=".pdf" ref={uploadRef} className="hidden" onChange={handleUploadFileChange} multiple />
+            <input type="file" accept=".pdf" ref={uploadRef} className="hidden" onChange={handleUploadFileChange} />
             {
-               uploadedFiles.length > 0?<ListBox className="border rounded-md border-gray-200 p-[12]">
-                {uploadedFiles.map((file,index) => 
-                <ListBox.Item key={index} id={index} className="flex justify-between items-center" >
-                  <Label>{file.name}</Label>
-                  <CloseButton onClick={() => handleDeleteFile(file)}></CloseButton>
-                </ListBox.Item>)}
+               uploadedFile?<ListBox className="border rounded-md border-gray-200 p-[12]">
+                <ListBox.Item className="flex justify-between items-center" >
+                  <Label>{uploadedFile.name}</Label>
+                  <CloseButton onClick={() => handleDeleteFile()}></CloseButton>
+                </ListBox.Item>
             </ListBox>:null
             }
-            <SubmitModal uploadedFiles={uploadedFiles}>
+            <SubmitModal uploadedFile={uploadedFile}>
 
             </SubmitModal>
           </Surface>

@@ -1,8 +1,8 @@
 import { QrCode } from "@gravity-ui/icons";
-import {AlertDialog, Modal,Button, ProgressCircle, Link, Disclosure} from "@heroui/react"
+import { Modal,Button, ProgressCircle, Link, Disclosure} from "@heroui/react"
 import { useState } from "react";
 interface SubmitModalProps {
-    uploadedFiles:Array<File>
+    uploadedFile:null | File
 }
 interface ModalContentProps {
   loading:boolean;
@@ -28,7 +28,7 @@ const ModalContent = ({
   if(loading) {
     return  <ProgressCircle isIndeterminate aria-label="Loading" className='flex-col gap-[16] text-center'>
       <p className="text-black text-base font-medium">
-    根据你所上传的文件数量和大小，可能需要约3-10分钟不等，请耐心等候
+      根据你所上传的文件大小，可能需要约3-10分钟不等，请耐心等候
       </p>
       <ProgressCircle.Track>
         <ProgressCircle.TrackCircle />
@@ -43,8 +43,8 @@ const ModalContent = ({
   }
   else if(error && retryCount >= MAX_RETRY_TIME) {
     return <Disclosure>
-        <Disclosure.Heading className="flex items-center gap-[16]">
-          <p className="text-black">
+        <Disclosure.Heading className="flex items-center gap-[16] flex-col">
+          <p className="text-danger text-base font-medium">
             Oops, 系统异常啦！你可以尝试
           </p>
           <Button slot="trigger" variant="secondary">
@@ -74,21 +74,19 @@ const ModalContent = ({
 
 
 export default function SubmitModal({
-    uploadedFiles = []
+    uploadedFile = null
 }:SubmitModalProps){
     const [loading, setLoading] = useState(false);
     const [downloadLink, setDownloadLink] = useState('');
     const [error, setError] = useState<unknown>(null);
     const handleSubmit = async () => {
-          if(loading) {
+          if(loading || !uploadedFile) {
             return;
           }
           setError(null);
           setLoading(true);
           const formData = new FormData();
-          uploadedFiles.forEach((file) => {
-            formData.append('files', file)
-          })
+          formData.append('file', uploadedFile);
           try { 
             const response = (await fetch('/api/files', {
               method:'post',
@@ -109,36 +107,7 @@ export default function SubmitModal({
             setLoading(false);
           }
       }
-
-    if(uploadedFiles.length > 9) {
-        return (<AlertDialog>
-                <Button className="self-center">送去分析</Button>
-                <AlertDialog.Backdrop >
-                  <AlertDialog.Container>
-                    <AlertDialog.Dialog
-                    >
-                      <AlertDialog.Header>
-                        <AlertDialog.Icon status="danger" />
-                        <AlertDialog.Heading>已达文件数量上限</AlertDialog.Heading>
-                      </AlertDialog.Header>
-                      <AlertDialog.Body>
-                        <p>
-                          最多只允许上传9个文件
-                        </p>
-                      </AlertDialog.Body>
-                      <AlertDialog.Footer>
-                        <Button slot="close" variant="danger">
-                          确认
-                        </Button>
-                      </AlertDialog.Footer>
-
-                    </AlertDialog.Dialog>
-                    
-                  </AlertDialog.Container>
-                </AlertDialog.Backdrop>
-              </AlertDialog>)
-    }
-    if(uploadedFiles.length > 0) {
+    if(uploadedFile) {
         return <Modal>
             <Button onPress={handleSubmit} className="self-center" variant="outline">送去分析</Button>
             <Modal.Backdrop isDismissable={false}>

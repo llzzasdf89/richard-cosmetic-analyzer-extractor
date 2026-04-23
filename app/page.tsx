@@ -1,10 +1,10 @@
 'use client';
-import { Button, Spinner, Surface, ListBox, Label,AlertDialog, CloseButton } from "@heroui/react"
+import { Button, Surface, ListBox, Label, CloseButton } from "@heroui/react"
 import {Paperclip} from "@gravity-ui/icons";
 import {useState, useRef, useEffect} from 'react'
 import './globals.css';
+import SubmitModal from "./components/submit-modal/submit-modal";
 export default function Home() {
-  const [isPending, setPending] = useState(false);
   const [uploadedFiles,setUploadedFiles] = useState<Array<File>>([]);
   const uploadRef = useRef<HTMLInputElement>(null);
   const handlePress = () => {
@@ -18,32 +18,14 @@ export default function Home() {
     const filteredList = currentFileList.filter(item => !uploadedFiles.some(file => file.name === item.name));
     const targetList = [...uploadedFiles, ...filteredList];
     if(targetList.length > 9) {
-
+      return;
     }
-    setUploadedFiles([...uploadedFiles, ...filteredList]);
+    setUploadedFiles(targetList);
   }
 
   const handleDeleteFile = (file:File)=>{
     setUploadedFiles(uploadedFiles.filter(item => item.name !== file.name))
     uploadRef.current!.value = ''; //清空在input element中已经上传的元素，重置状态。否则用户反复选择同一文件后是无法触发onChange事件的
-  }
-
-  const handleSubmit = async () => {
-      const formData = new FormData();
-      uploadedFiles.forEach((file) => {
-        formData.append('files', file)
-      })
-      const response = (await fetch('/api/files', {
-        method:'post',
-        body:formData,
-      }));
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'output.xlsx'
-      a.click()
-      URL.revokeObjectURL(url)
   }
 
   useEffect(() => {
@@ -75,14 +57,14 @@ export default function Home() {
               在下方传入你的专利PDF文档（不超过9个）
             </p>
           </div>
-           <Surface className="flex min-w-[320px] flex-col gap-3 rounded-3xl p-6 mt-12" variant="secondary">
-            <Button isPending={isPending} onPress={handlePress} className="self-center">
-              {isPending?<Spinner color="current" size="sm"></Spinner>:<Paperclip/>}
-              {isPending?'uploading...':'点击这里'}
+           <Surface className="flex min-w-[320px] flex-col gap-3 rounded-3xl p-6 mt-12">
+            <Button onPress={handlePress} className="self-center">
+              <Paperclip/>
+              快速开始
             </Button>
             <input type="file" accept=".pdf" ref={uploadRef} className="hidden" onChange={handleUploadFileChange} multiple />
             {
-               uploadedFiles.length > 0?<ListBox >
+               uploadedFiles.length > 0?<ListBox className="border rounded-sm border-gray-200">
                 {uploadedFiles.map((file,index) => 
                 <ListBox.Item key={index} id={index} className="flex justify-between items-center" >
                   <Label>{file.name}</Label>
@@ -90,37 +72,9 @@ export default function Home() {
                 </ListBox.Item>)}
             </ListBox>:null
             }
-            {
-              uploadedFiles?.length > 9? 
-              (
-              <AlertDialog>
-                <Button className="self-center">提交</Button>
-                <AlertDialog.Backdrop>
-                  <AlertDialog.Container>
-                    <AlertDialog.Dialog
-                    >
-                      <AlertDialog.CloseTrigger />
-                      <AlertDialog.Header>
-                        <AlertDialog.Icon status="danger" />
-                        <AlertDialog.Heading>已达文件数量上限</AlertDialog.Heading>
-                      </AlertDialog.Header>
-                      <AlertDialog.Body>
-                        <p>
-                          最多只允许上传9个文件
-                        </p>
-                      </AlertDialog.Body>
-                      <AlertDialog.Footer>
-                        <Button slot="close" variant="danger">
-                          确认
-                        </Button>
-                      </AlertDialog.Footer>
+            <SubmitModal uploadedFiles={uploadedFiles}>
 
-                    </AlertDialog.Dialog>
-                    
-                  </AlertDialog.Container>
-                </AlertDialog.Backdrop>
-              </AlertDialog>):uploadedFiles?.length > 0? <Button className="self-center" onClick={handleSubmit}>提交</Button>:null
-            }
+            </SubmitModal>
           </Surface>
         </div>
         <div

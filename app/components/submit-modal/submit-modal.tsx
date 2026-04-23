@@ -1,0 +1,165 @@
+import { QrCode } from "@gravity-ui/icons";
+import {AlertDialog, Modal,Button, ProgressCircle, Link, Disclosure} from "@heroui/react"
+import { useState } from "react";
+interface SubmitModalProps {
+    uploadedFiles:Array<File>
+}
+interface ModalContentProps {
+  loading:boolean;
+  downloadLink:string;
+  error:unknown | null;
+  fetchFunc:() => void;
+}
+const MAX_RETRY_TIME = 3; //最大重连次数
+const ModalContent = ({
+  loading = false,
+  downloadLink = '',
+  error = null,
+  fetchFunc = async ()=>{},
+}:ModalContentProps) => {
+  const [retryCount, setRetryCount] = useState(0);
+  const handleRetry = () => {
+    setRetryCount(retryCount+1);
+    if(retryCount >= MAX_RETRY_TIME) {
+      return;
+    }
+    fetchFunc()
+  }
+  if(loading) {
+    return  <ProgressCircle isIndeterminate aria-label="Loading" className='flex-col gap-[16] text-center'>
+      <p className="text-black">
+    根据你所上传的文件数量和大小，可能需要约3-10分钟不等，请耐心等候
+      </p>
+      <ProgressCircle.Track>
+        <ProgressCircle.TrackCircle />
+        <ProgressCircle.FillCircle />
+      </ProgressCircle.Track>
+    </ProgressCircle>;
+  }
+  if(error && retryCount < MAX_RETRY_TIME) {
+    return <p>
+      分析错误，<Link className='underline' onPress={handleRetry}>重试一下试试? <Link.Icon /></Link>
+    </p>
+  }
+  else if(error && retryCount >= MAX_RETRY_TIME) {
+    return <Disclosure>
+        <Disclosure.Heading className="flex items-center gap-[16]">
+          <p className="text-black">
+            Oops, 系统异常啦！你可以尝试
+          </p>
+          <Button slot="trigger" variant="secondary">
+            <QrCode />
+              联系开发者
+            <Disclosure.Indicator />
+          </Button>
+        </Disclosure.Heading>
+        <Disclosure.Content>
+          <Disclosure.Body className="shadow-panel flex flex-col items-center rounded-3xl bg-surface p-4 text-center">
+            <img
+              alt="Expo Go QR Code"
+              className="aspect-square w-full max-w-54 object-cover"
+              src="wechat--QR-code.jpg"
+            />
+          </Disclosure.Body>
+        </Disclosure.Content>
+      </Disclosure>
+  }
+  return <Link href={downloadLink}>
+    分析已完成，点我去下载
+    <Link.Icon></Link.Icon>
+  </Link>
+}
+
+
+export default function SubmitModal({
+    uploadedFiles = []
+}:SubmitModalProps){
+    const [loading, setLoading] = useState(false);
+    const [downloadLink, setDownloadLink] = useState('');
+    const [error, setError] = useState<unknown>(null);
+    const handleSubmit = async () => {
+          if(loading) {
+            return;
+          }
+          setLoading(true);
+          const formData = new FormData();
+          uploadedFiles.forEach((file) => {
+            formData.append('files', file)
+          })
+          try { 
+            const response = (await fetch('/api/files', {
+              method:'post',
+              body:formData,
+            }));
+            if(response.status !== 200) {
+              const {message = ''} = await response.json?.() || {}
+              throw Error(message)
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            console.log({
+              blob,
+              url,
+            })
+            setDownloadLink(url);
+          }
+          catch(err) {
+            console.error('分析错误',err);
+            setError(err);
+          } finally { 
+            setLoading(false);
+          }
+      }
+
+    if(uploadedFiles.length > 9) {
+        return (<AlertDialog>
+                <Button className="self-center">送去分析</Button>
+                <AlertDialog.Backdrop >
+                  <AlertDialog.Container>
+                    <AlertDialog.Dialog
+                    >
+                      <AlertDialog.Header>
+                        <AlertDialog.Icon status="danger" />
+                        <AlertDialog.Heading>已达文件数量上限</AlertDialog.Heading>
+                      </AlertDialog.Header>
+                      <AlertDialog.Body>
+                        <p>
+                          最多只允许上传9个文件
+                        </p>
+                      </AlertDialog.Body>
+                      <AlertDialog.Footer>
+                        <Button slot="close" variant="danger">
+                          确认
+                        </Button>
+                      </AlertDialog.Footer>
+
+                    </AlertDialog.Dialog>
+                    
+                  </AlertDialog.Container>
+                </AlertDialog.Backdrop>
+              </AlertDialog>)
+    }
+    if(uploadedFiles.length > 0) {
+        return <Modal>
+            <Button onPress={handleSubmit} className="self-center">送去分析</Button>
+            <Modal.Backdrop isDismissable={false}>
+        <Modal.Container>
+          <Modal.Dialog className="sm:max-w-[360px] p-[48]">
+            {loading?null:<Modal.CloseTrigger />}
+            <Modal.Body className="flex justify-center items-center overflow-hidden">
+              <ModalContent
+              loading={loading}
+              downloadLink={downloadLink}
+              error={error}
+              fetchFunc={handleSubmit}
+              >
+
+              </ModalContent>
+            </Modal.Body>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+        </Modal>
+    }
+    return null;
+}

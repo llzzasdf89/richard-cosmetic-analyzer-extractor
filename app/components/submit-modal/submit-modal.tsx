@@ -27,7 +27,7 @@ const ModalContent = ({
   }
   if(loading) {
     return  <ProgressCircle isIndeterminate aria-label="Loading" className='flex-col gap-[16] text-center'>
-      <p className="text-black">
+      <p className="text-black text-base font-medium">
     根据你所上传的文件数量和大小，可能需要约3-10分钟不等，请耐心等候
       </p>
       <ProgressCircle.Track>
@@ -37,8 +37,8 @@ const ModalContent = ({
     </ProgressCircle>;
   }
   if(error && retryCount < MAX_RETRY_TIME) {
-    return <p>
-      分析错误，<Link className='underline' onPress={handleRetry}>重试一下试试? <Link.Icon /></Link>
+    return <p className="text-base text-danger font-medium">
+      分析出错，<Link className='underline text-base' onPress={handleRetry}>重试一下? <Link.Icon /></Link>
     </p>
   }
   else if(error && retryCount >= MAX_RETRY_TIME) {
@@ -56,7 +56,7 @@ const ModalContent = ({
         <Disclosure.Content>
           <Disclosure.Body className="shadow-panel flex flex-col items-center rounded-3xl bg-surface p-4 text-center">
             <img
-              alt="Expo Go QR Code"
+              alt="开发者二维码"
               className="aspect-square w-full max-w-54 object-cover"
               src="wechat--QR-code.jpg"
             />
@@ -64,10 +64,12 @@ const ModalContent = ({
         </Disclosure.Content>
       </Disclosure>
   }
-  return <Link href={downloadLink}>
-    分析已完成，点我去下载
+  return  <p className="text-base font-medium">
+    分析完成，<Link href={downloadLink} className="text-base font-medium text-(--button-primary) decoration-(--button-primary)">
+    下载分析结果
     <Link.Icon></Link.Icon>
-  </Link>
+    </Link>
+  </p>
 }
 
 
@@ -81,6 +83,7 @@ export default function SubmitModal({
           if(loading) {
             return;
           }
+          setError(null);
           setLoading(true);
           const formData = new FormData();
           uploadedFiles.forEach((file) => {
@@ -97,10 +100,6 @@ export default function SubmitModal({
             }
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
-            console.log({
-              blob,
-              url,
-            })
             setDownloadLink(url);
           }
           catch(err) {
@@ -141,7 +140,7 @@ export default function SubmitModal({
     }
     if(uploadedFiles.length > 0) {
         return <Modal>
-            <Button onPress={handleSubmit} className="self-center">送去分析</Button>
+            <Button onPress={handleSubmit} className="self-center" variant="outline">送去分析</Button>
             <Modal.Backdrop isDismissable={false}>
         <Modal.Container>
           <Modal.Dialog className="sm:max-w-[360px] p-[48]">

@@ -57,14 +57,14 @@ export default function Home() {
               在下方传入你的专利PDF文档（不超过9个）
             </p>
           </div>
-           <Surface className="flex min-w-[320px] flex-col gap-3 rounded-3xl p-6 mt-12">
+           <Surface className="flex min-w-[320px] flex-col gap-3 rounded-3xl p-6">
             <Button onPress={handlePress} className="self-center">
               <Paperclip/>
               快速开始
             </Button>
             <input type="file" accept=".pdf" ref={uploadRef} className="hidden" onChange={handleUploadFileChange} multiple />
             {
-               uploadedFiles.length > 0?<ListBox className="border rounded-sm border-gray-200">
+               uploadedFiles.length > 0?<ListBox className="border rounded-md border-gray-200 p-[12]">
                 {uploadedFiles.map((file,index) => 
                 <ListBox.Item key={index} id={index} className="flex justify-between items-center" >
                   <Label>{file.name}</Label>

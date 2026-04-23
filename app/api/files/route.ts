@@ -98,19 +98,21 @@ export async function POST(request: Request) {
     }
     try {
         const messages = [
-            ...uploadedFiles.map(item => ({
+            ...uploadedFiles.map((item, index) => ({
                 role: 'system',
-                content: `fileid://${item.id}`
+                content: `fileid://${item.id}； 文件名称${item.filename}；是${index === 0 ? 'PDF文件' : 'excel文件'}`
             })),
             {
                 role: 'user',
                 content: `站在一个化妆品研发工程师的角度，完成以下工作:
-                1.根据我上传的PDF专利文件, 输出一个excel文件（.xlsx)格式
+                1.根据我上传的PDF专利文件, 输出一个excel文件（.xlsx)格
                 2.从专利摘要部分获取组合物几个大的组成部分：例如活性成分、乳化剂、助乳化剂、多元醇、液体脂质、磷脂、水等大类及其比例或者份数、质量百分比范围。
                 3、从具体实施方式或者权利要求书部分获取所述组分大类分别是什么组份，并分别列出组份
                 4、从具体实施方式列出各个实施例、对比例用到的组份和量（比例、百分比、份数），放在一起做成一个表格。横向表头为各个组份，竖向表头为各个实施例、对比例。组份上面是所属的大的组成部分。
                 5、从试验例、测试例、实验例中找出测试的项目类别，比如什么的含量、稳定性、粒径、PDI、斑贴测试、刺激性、皮肤含水量等，在步骤3做出的表格右侧横向表头列出对应的测试项目，在对应实施例、或者对比例测试过的项目表格里打勾。
-                
+                6.输出的excel表格，其格式参考我给你的excel模板，文件id:${uploadedTemplateFile.id}
+                7.输出的Excel文件可能包含多个子表，根据我给你的PDF文件数量决定（例如我给你了1个PDF文件，那么只有一个子表）
+                8.每个子表名称都以这份PDF对应的文件名称命名，例如我给你输入的PDF名称为A.pdf,那么excel中这个子表叫做"A表"
                 `
             }, {
                 role: 'user',
@@ -123,10 +125,14 @@ export async function POST(request: Request) {
             }
         ]
         const modelResponse = await openai.chat.completions.create({
-            model: 'qwen-long',
+            model: 'qwen-turbo',
             messages,
         })
         const text = modelResponse.choices[0].message.content ?? '';
+        console.log({
+            messages,
+            text,
+        })
         const json = text.replace(/```json|```/g, '').trim();
         const rows = JSON.parse(json);
         excelBuffer = await generateExcel(rows);

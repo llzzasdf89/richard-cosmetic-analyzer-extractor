@@ -15,9 +15,12 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - /var/log/richard-nginx:/var/log/nginx
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro #Nginx配置
+      - ./nginx/formula-patent-extractor.site_bundle.crt:/etc/nginx/formula-patent-extractor.site_bundle.crt:ro
+      - ./nginx/formula-patent-extractor.site.key:/etc/nginx/formula-patent-extractor.site.key:ro #HTTPS证书存放地               
+      - /var/log/richard-nginx:/var/log/nginx #业务日志存储路径
     depends_on:
       - app
     networks:

@@ -1,6 +1,8 @@
 import pino from "pino";
+import path from "path";
 
 const isProduction = process.env.NODE_ENV === "production";
+const logDir = path.join(process.cwd(), "logs");
 
 export const rootLogger = pino(
     {
@@ -20,11 +22,12 @@ export const rootLogger = pino(
                 {
                     target: "pino-roll",
                     options: {
-                        file: "/app/logs/app",
+                        file: path.join(logDir, "app"),
                         frequency: "daily",
                         extension: ".log",
                         dateFormat: "yyyy-MM-dd",
                         mkdir: true,
+                        size: "500m",   // 当天日志的一部分最大500M，如果超出了那么就被切分到文件2
                     },
                 },
                 {

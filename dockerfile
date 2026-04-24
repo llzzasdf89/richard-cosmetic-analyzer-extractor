@@ -3,7 +3,6 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-# 容器内重新安装，自动匹配 linux-musl 平台
 RUN npm ci
 
 FROM node:20-alpine AS builder

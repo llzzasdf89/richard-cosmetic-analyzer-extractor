@@ -6,6 +6,8 @@ services:
       - "3000"
     environment:
       - NODE_ENV=production
+    volumes:
+      - /var/log/richard-app:/app/logs   # 持久化应用日志
     networks:
       - internal
 
@@ -16,6 +18,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /var/log/richard-nginx:/var/log/nginx  # 持久化 Nginx 日志
     depends_on:
       - app
     networks:

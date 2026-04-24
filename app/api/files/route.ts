@@ -7,7 +7,7 @@ import { parseModelJSON, isPDF } from "@/app/lib/utils";
 import { createHandler } from "@/app/lib/api";
 import { rootLogger } from "@/app/lib/logger";
 import type { ChatCompletionMessageParam, FilePurpose } from "openai/resources";
-const PROMPT_CONTENT = fs.readFileSync(path.resolve(process.cwd(), 'app', 'api', 'files', 'prompt.md'))?.toString?.(); //prompt内容
+const PROMPT_CONTENT = fs.readFileSync(path.resolve(process.cwd(), 'public', 'prompt.md'))?.toString?.(); //prompt内容
 const apiKey = 'sk-1fae8b198b114399b097b74f0114586e';
 const openai = new OpenAI({
     apiKey,

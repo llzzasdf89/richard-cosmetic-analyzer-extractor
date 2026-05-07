@@ -2,7 +2,6 @@
 import { Button, Surface, ListBox, Label, CloseButton, Popover, Link } from "@heroui/react"
 import {Paperclip} from "@gravity-ui/icons";
 import {useState, useRef} from 'react'
-import './globals.css';
 import SubmitModal from "./components/submit-modal/submit-modal";
 export default function Home() {
   const [uploadedFile,setUploadedFile] = useState<null | File>(null);
@@ -22,8 +21,7 @@ export default function Home() {
     setUploadedFile(null);
     uploadRef.current!.value = ''; //清空在input element中已经上传的元素，重置状态。否则用户反复选择同一文件后是无法触发onChange事件的
   }
-  return (<html>
-    <body>
+  return (
       <div className="bg-white">
 
       <div className="relative isolate px-6 pt-14 lg:px-8">
@@ -90,6 +88,5 @@ export default function Home() {
         </div>
       </div>
     </div>
-    </body>
-  </html>)
+)
 }

@@ -2,6 +2,8 @@
 
 > 一个智能化妆品专利分析平台，通过 AI 大模型自动提取专利文档中的成分信息、用量、实施例等数据，生成结构化的 Excel 分析报表。
 
+![image](./public/demo演示.gif)
+
 ![Powered by Next.js](https://img.shields.io/badge/Powered%20by-Next.js-black)
 ![License](https://img.shields.io/badge/License-MIT-green)
 

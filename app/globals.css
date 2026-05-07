@@ -1,2 +1,5 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+:root {
+    --button-primary:lab(54.5335 3.31545 -66.5298);
+}

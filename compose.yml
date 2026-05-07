@@ -1,0 +1,29 @@
+services:
+  app:
+    image: ccr.ccs.tencentyun.com/richard-lee/richard-cosmetic-analyzer-extractor:v1.0.0
+    restart: always
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - /var/log/richard-app:/app/logs    # ← 加这里
+    networks:
+      - internal
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro #Nginx配置
+      - ./nginx/formula-patent-extractor.site_bundle.crt:/etc/nginx/formula-patent-extractor.site_bundle.crt:ro
+      - ./nginx/formula-patent-extractor.site.key:/etc/nginx/formula-patent-extractor.site.key:ro #HTTPS证书存放地               
+      - /var/log/richard-nginx:/var/log/nginx #业务日志存储路径
+    depends_on:
+      - app
+    networks:
+      - internal
+networks:
+  internal:

@@ -6,7 +6,7 @@ on:
 
 env:
  ECR_REGISTRY: 865266771686.dkr.ecr.ap-northeast-1.amazonaws.com
-  ECR_REPO: richard
+ ECR_REPO: richard
 
 jobs:
   deploy:

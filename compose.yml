@@ -2,6 +2,8 @@ services:
   app:
     image: 865266771686.dkr.ecr.ap-northeast-1.amazonaws.com/richard:latest
     restart: always
+    env_file:
+      - .env
     expose:
       - "3000"
     environment:

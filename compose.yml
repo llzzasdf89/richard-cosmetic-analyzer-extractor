@@ -1,6 +1,6 @@
 services:
   app:
-    image: ccr.ccs.tencentyun.com/richard-lee/richard-cosmetic-analyzer-extractor:v1.0.0
+    image: 865266771686.dkr.ecr.ap-northeast-1.amazonaws.com/richard:latest
     restart: always
     expose:
       - "3000"

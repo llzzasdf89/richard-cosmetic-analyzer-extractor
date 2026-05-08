@@ -47,7 +47,7 @@ export const { POST } = createHandler({
             ]
             rootLogger.info(`[${new Date().toISOString()}][start] model questioning... with` + JSON.stringify(messages))
             const modelResponse = await openai.chat.completions.create({
-                model: 'qwen-long-latest',
+                model: process.env.MODEL_NAME as string,
                 messages,
             })
             const text = modelResponse.choices[0].message.content ?? '';

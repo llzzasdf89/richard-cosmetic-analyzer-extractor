@@ -8,16 +8,17 @@ import { createHandler } from "@/app/lib/api";
 import { rootLogger } from "@/app/lib/logger";
 import type { ChatCompletionMessageParam, FilePurpose } from "openai/resources";
 const PROMPT_CONTENT = fs.readFileSync(path.resolve(process.cwd(), 'public', 'prompt.md'))?.toString?.(); //prompt内容
-const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not defined");
-}
-const openai = new OpenAI({
-    apiKey,
-    baseURL: process.env.OPENAI_BASE_URL
-})
+
 export const { POST } = createHandler({
     async POST(request: Request) {
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error("OPENAI_API_KEY is not defined");
+        }
+        const openai = new OpenAI({
+            apiKey,
+            baseURL: process.env.OPENAI_BASE_URL
+        });
         const formData = await request.formData();
         const file = formData.get('file') as File;
         let errorMessage = '';
